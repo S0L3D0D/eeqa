@@ -115,7 +115,7 @@ end)
 -- Toggle con tecla N
 UIS.InputBegan:Connect(function(input, gp)
     if gp then return end
-    if input.KeyCode == Enum.KeyCode.X then
+    if input.KeyCode == Enum.KeyCode.C then
         npcESPEnabled = not npcESPEnabled
         for _, gui in pairs(npcTags) do
             if gui then gui.Enabled = npcESPEnabled end
