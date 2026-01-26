@@ -166,7 +166,15 @@ pcall(function()
 		["am"] = true,
 		["saintpart"] = true,
 		["Head"] = true,
-		["Chest_p"] = true
+		["Orb_p"] = true,
+        ["Wood_p"] = true,
+        ["Shattered Chain_p"] = true,
+        ["Holy Chain_p"] = true,
+        ["Line Paper_p"] = true,
+        ["Metal_p"] = true,
+        ["Rusty Metal_p"] = true,
+        ["Stone_p"] = true,
+        -["Chest_p"] = true,
 	}
 
 	local ITEM_SIZE = UDim2.new(0,140,0,30)
