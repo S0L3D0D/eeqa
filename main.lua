@@ -174,7 +174,7 @@ pcall(function()
         ["Metal_p"] = true,
         ["Rusty Metal_p"] = true,
         ["Stone_p"] = true,
-        -["Chest_p"] = true,
+        ["Chest_p"] = true,
 	}
 
 	local ITEM_SIZE = UDim2.new(0,140,0,30)
