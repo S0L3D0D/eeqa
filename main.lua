@@ -133,23 +133,32 @@ pcall(function()
     local RunService = game:GetService("RunService")
 
     local lp = Players.LocalPlayer
-    local DEFAULT_SPEED = 16   -- velocidad normal
+    local DEFAULT_SPEED = 16
 
-    RunService.Heartbeat:Connect(function()
+    local humanoid = nil
+
+    local function UpdateHumanoid()
         local char = lp.Character
         if not char then return end
+        humanoid = char:FindFirstChildWhichIsA("Humanoid")
+    end
 
-        local hum = char:FindFirstChildWhichIsA("Humanoid")
-        if not hum then return end
+    -- detectar personaje actual
+    UpdateHumanoid()
 
-        -- 🟡 Si el juego baja WalkSpeed por una habilidad o debuff
-        -- (ejemplo: te lo ponen en 4, 6, 8, etc.)
-        if hum.WalkSpeed < DEFAULT_SPEED then
-            hum.WalkSpeed = DEFAULT_SPEED
+    -- detectar respawn
+    lp.CharacterAdded:Connect(function(char)
+        humanoid = char:WaitForChild("Humanoid")
+    end)
+
+    RunService.Heartbeat:Connect(function()
+        if humanoid and humanoid.Parent then
+            if humanoid.WalkSpeed < DEFAULT_SPEED then
+                humanoid.WalkSpeed = DEFAULT_SPEED
+            end
         end
     end)
 end)
-
 
 -------------------------------------
 -- [4] Item ESP (Toggle: V)
