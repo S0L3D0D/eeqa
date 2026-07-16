@@ -257,151 +257,191 @@ end)
 -------------------------------------
 -- [5] NameTag ESP (Toggle: Z)
 -------------------------------------
-do
-	local Players = game:GetService("Players")
-	local UserInputService = game:GetService("UserInputService")
-	local RunService = game:GetService("RunService")
-	local LocalPlayer = Players.LocalPlayer
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local LocalPlayer = Players.LocalPlayer
 
-	local NAME_OFFSET = Vector3.new(0, -0.5, 0)
-	local BILLBOARD_SIZE = UDim2.new(0, 160, 0, 40)
-	local NAME_SIZE = 18
-	local TOOL_SIZE = 14
-	local NAME_COLOR = Color3.fromRGB(255, 255, 255)
-	local TOOL_COLOR = Color3.fromRGB(255, 230, 0)
-	local TOOL_STROKE_COLOR = Color3.fromRGB(0, 0, 0)
-	local TOOL_STROKE_TRANSP = 0.6
+-- Configuración del Billboard original (anclado al RootPart)
+local NAME_OFFSET = Vector3.new(0, -0.2, 0) -- Ligeramente subido para balancear la línea extra de vida
+local BILLBOARD_SIZE = UDim2.new(0, 160, 0, 50) -- Un poco más alto para las 3 líneas de texto
 
-	local espEnabled = true
-	local billboards = {}
+-- Estilos de texto originales
+local NAME_SIZE = 18
+local TOOL_SIZE = 14
+local NAME_COLOR = Color3.fromRGB(255, 255, 255)
+local TOOL_COLOR = Color3.fromRGB(255, 230, 0)
+local TOOL_STROKE_COLOR = Color3.fromRGB(0, 0, 0)
+local TOOL_STROKE_TRANSP = 0.6
 
-	local function getAdornee(char)
-		return char:FindFirstChild("HumanoidRootPart")
-			or char:FindFirstChildWhichIsA("BasePart")
-	end
+-- Ajustes exclusivos de la Vida (Verde de alta visibilidad con contorno)
+local HEALTH_SIZE = 15
+local HEALTH_COLOR = Color3.fromRGB(0, 255, 100)
 
-	local function createOrUpdate(player)
-		if player == LocalPlayer or not espEnabled then return end
+local espEnabled = true
+local billboards = {}
 
-		local char = player.Character
-		if not char then return end
+local function getAdornee(char)
+	return char:FindFirstChild("HumanoidRootPart")
+		or char:FindFirstChildWhichIsA("BasePart")
+end
 
-		local adornee = getAdornee(char)
-		if not adornee then return end
-
-		if billboards[player] then
-			billboards[player].Billboard:Destroy()
-			billboards[player] = nil
-		end
-
-		local bill = Instance.new("BillboardGui")
-		bill.Name = "NameTagESP"
-		bill.Adornee = adornee
-		bill.AlwaysOnTop = true
-		bill.Size = BILLBOARD_SIZE
-		bill.StudsOffset = NAME_OFFSET
-		bill.Enabled = espEnabled
-		bill.Parent = adornee
-
-		local nameLabel = Instance.new("TextLabel")
-		nameLabel.Parent = bill
-		nameLabel.Size = UDim2.new(1, 0, 0.6, 0)
-		nameLabel.BackgroundTransparency = 1
-		nameLabel.Text = player.DisplayName or player.Name
-		nameLabel.TextColor3 = NAME_COLOR
-		nameLabel.Font = Enum.Font.SourceSansBold
-		nameLabel.TextSize = NAME_SIZE
-		nameLabel.AnchorPoint = Vector2.new(0.5, 0)
-		nameLabel.Position = UDim2.new(0.5, 0, 0, 0)
-
-		local toolLabel = Instance.new("TextLabel")
-		toolLabel.Parent = bill
-		toolLabel.Size = UDim2.new(1, 0, 0.4, 0)
-		toolLabel.Position = UDim2.new(0.5, 0, 0.6, 0)
-		toolLabel.AnchorPoint = Vector2.new(0.5, 0)
-		toolLabel.BackgroundTransparency = 1
-		toolLabel.TextColor3 = TOOL_COLOR
-		toolLabel.TextStrokeColor3 = TOOL_STROKE_COLOR
-		toolLabel.TextStrokeTransparency = TOOL_STROKE_TRANSP
-		toolLabel.Font = Enum.Font.SourceSansBold
-		toolLabel.TextSize = TOOL_SIZE
-
-		billboards[player] = {
-			Billboard = bill,
-			NameLabel = nameLabel,
-			ToolLabel = toolLabel
-		}
-
-		local function updateTool()
-			if not espEnabled then return end
-			local tool = char:FindFirstChildOfClass("Tool")
-			toolLabel.Text = tool and ("[" .. tool.Name .. "]") or ""
-		end
-
-		char.ChildAdded:Connect(updateTool)
-		char.ChildRemoved:Connect(updateTool)
-		updateTool()
-	end
-
-	local function clearAll()
-		for _, data in pairs(billboards) do
-			if data.Billboard then
-				data.Billboard:Destroy()
+-- Limpieza segura de conexiones y elementos visuales
+local function removePlayerESP(player)
+	if billboards[player] then
+		if billboards[player].Connections then
+			for _, connection in ipairs(billboards[player].Connections) do
+				if connection then connection:Disconnect() end
 			end
 		end
-		billboards = {}
-	end
-
-	local function onPlayer(player)
-		player.CharacterAdded:Connect(function()
-			task.wait(0.05)
-			createOrUpdate(player)
-		end)
-
-		player.CharacterRemoving:Connect(function()
-			if billboards[player] then
-				billboards[player].Billboard:Destroy()
-				billboards[player] = nil
-			end
-		end)
-
-		if player.Character then
-			createOrUpdate(player)
-		end
-	end
-
-	for _, plr in ipairs(Players:GetPlayers()) do
-		onPlayer(plr)
-	end
-
-	Players.PlayerAdded:Connect(onPlayer)
-	Players.PlayerRemoving:Connect(function(player)
-		if billboards[player] then
+		if billboards[player].Billboard then
 			billboards[player].Billboard:Destroy()
-			billboards[player] = nil
 		end
+		billboards[player] = nil
+	end
+end
+
+local function createOrUpdate(player)
+	if player == LocalPlayer or not espEnabled then return end
+
+	local char = player.Character
+	if not char then return end
+
+	local adornee = getAdornee(char)
+	if not adornee then return end
+
+	local humanoid = char:FindFirstChildOfClass("Humanoid")
+	if not humanoid then return end
+
+	removePlayerESP(player)
+
+	-- Único BillboardGui (Lógica de posicionamiento original)
+	local bill = Instance.new("BillboardGui")
+	bill.Name = "NameTagESP"
+	bill.Adornee = adornee
+	bill.AlwaysOnTop = true
+	bill.Size = BILLBOARD_SIZE
+	bill.StudsOffset = NAME_OFFSET
+	bill.Enabled = espEnabled
+	bill.Parent = adornee
+
+	-- 1. Vida (Arriba del nombre, verde brillante con contorno)
+	local healthLabel = Instance.new("TextLabel")
+	healthLabel.Parent = bill
+	healthLabel.Size = UDim2.new(1, 0, 0.35, 0)
+	healthLabel.Position = UDim2.new(0.5, 0, 0, 0) -- Parte superior
+	healthLabel.AnchorPoint = Vector2.new(0.5, 0)
+	healthLabel.BackgroundTransparency = 1
+	healthLabel.TextColor3 = HEALTH_COLOR
+	healthLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+	healthLabel.TextStrokeTransparency = 0.2
+	healthLabel.Font = Enum.Font.SourceSansBold
+	healthLabel.TextSize = HEALTH_SIZE
+
+	-- 2. Nombre (En el medio, blanco)
+	local nameLabel = Instance.new("TextLabel")
+	nameLabel.Parent = bill
+	nameLabel.Size = UDim2.new(1, 0, 0.35, 0)
+	nameLabel.Position = UDim2.new(0.5, 0, 0.35, 0) -- Justo debajo de la vida
+	nameLabel.AnchorPoint = Vector2.new(0.5, 0)
+	nameLabel.BackgroundTransparency = 1
+	nameLabel.Text = player.DisplayName or player.Name
+	nameLabel.TextColor3 = NAME_COLOR
+	nameLabel.Font = Enum.Font.SourceSansBold
+	nameLabel.TextSize = NAME_SIZE
+
+	-- 3. Herramienta (Abajo del nombre, amarillo con contorno original)
+	local toolLabel = Instance.new("TextLabel")
+	toolLabel.Parent = bill
+	toolLabel.Size = UDim2.new(1, 0, 0.3, 0)
+	toolLabel.Position = UDim2.new(0.5, 0, 0.7, 0) -- Parte inferior
+	toolLabel.AnchorPoint = Vector2.new(0.5, 0)
+	toolLabel.BackgroundTransparency = 1
+	toolLabel.TextColor3 = TOOL_COLOR
+	toolLabel.TextStrokeColor3 = TOOL_STROKE_COLOR
+	toolLabel.TextStrokeTransparency = TOOL_STROKE_TRANSP
+	toolLabel.Font = Enum.Font.SourceSansBold
+	toolLabel.TextSize = TOOL_SIZE
+
+	local connections = {}
+
+	-- Actualización de la salud
+	local function updateHealth()
+		if not humanoid or not healthLabel then return end
+		local currentHp = math.max(0, math.floor(humanoid.Health))
+		local maxHp = math.floor(humanoid.MaxHealth)
+		healthLabel.Text = string.format("[%d/%d]", currentHp, maxHp)
+	end
+
+	-- Actualización de la herramienta
+	local function updateTool()
+		if not espEnabled or not toolLabel then return end
+		local tool = char:FindFirstChildOfClass("Tool")
+		toolLabel.Text = tool and ("[" .. tool.Name .. "]") or ""
+	end
+
+	table.insert(connections, char.ChildAdded:Connect(updateTool))
+	table.insert(connections, char.ChildRemoved:Connect(updateTool))
+	table.insert(connections, humanoid.HealthChanged:Connect(updateHealth))
+
+	billboards[player] = {
+		Billboard = bill,
+		Connections = connections
+	}
+
+	updateHealth()
+	updateTool()
+end
+
+local function clearAll()
+	for player, _ in pairs(billboards) do
+		removePlayerESP(player)
+	end
+end
+
+local function onPlayer(player)
+	player.CharacterAdded:Connect(function()
+		task.wait(0.05)
+		createOrUpdate(player)
 	end)
 
-	UserInputService.InputBegan:Connect(function(input, gp)
-		if gp then return end
-		if input.KeyCode == Enum.KeyCode.Z then
-			espEnabled = not espEnabled
-			if not espEnabled then
-				clearAll()
-			else
-				for _, plr in ipairs(Players:GetPlayers()) do
-					createOrUpdate(plr)
-				end
-			end
-		end
+	player.CharacterRemoving:Connect(function()
+		removePlayerESP(player)
 	end)
 
-	RunService.RenderStepped:Connect(function()
-		if not espEnabled then return end
-		for _, plr in ipairs(Players:GetPlayers()) do
-			if plr ~= LocalPlayer and not billboards[plr] then
+	if player.Character then
+		createOrUpdate(player)
+	end
+end
+
+for _, plr in ipairs(Players:GetPlayers()) do
+	onPlayer(plr)
+end
+
+Players.PlayerAdded:Connect(onPlayer)
+Players.PlayerRemoving:Connect(function(player)
+	removePlayerESP(player)
+end)
+
+UserInputService.InputBegan:Connect(function(input, gp)
+	if gp then return end
+	if input.KeyCode == Enum.KeyCode.Z then
+		espEnabled = not espEnabled
+		if not espEnabled then
+			clearAll()
+		else
+			for _, plr in ipairs(Players:GetPlayers()) do
 				createOrUpdate(plr)
 			end
 		end
-	end)
-end
+	end
+end)
+
+RunService.RenderStepped:Connect(function()
+	if not espEnabled then return end
+	for _, plr in ipairs(Players:GetPlayers()) do
+		if plr ~= LocalPlayer and not billboards[plr] then
+			createOrUpdate(plr)
+		end
+	end
+end)
